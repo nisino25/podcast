@@ -62,7 +62,7 @@
         <ul class="space-y-4">
           <template v-for="(episode, index) in episodes" :key="index">
 
-            <li class="border p-4 rounded" v-if="!showListened || !isListened(episode.guid)">
+            <li class="border p-4 rounded" v-if="!showListened || !episode.finished">
               <h3 class="text-lg font-semibold">{{ index+1 }}. {{ episode.title }}</h3>
               <!-- <small class="text-sm text-gray-600">{{ episode.pubDate }}</small> -->
               <small class="text-sm text-gray-600">{{ formatDate(episode.pubDate) }}</small>
@@ -77,11 +77,11 @@
               </button>
   
               <button
-                @click="toggleListened(episode.guid)"
+                @click="episode.finished = !episode.finished"
                 class="mt-2 px-4 py-2 text-sm rounded text-white float-right"
-                :class="isListened(episode.guid) ? 'bg-green-500' : 'bg-gray-500'"
+                :class="episode.finished ? 'bg-green-500' : 'bg-gray-500'"
               >
-                {{ isListened(episode.guid) ? 'Mark as Unlistened' : 'Mark as Listened' }}
+                {{ !episode.finished ? 'Mark as Unlistened' : 'Mark as Listened' }}
               </button>
               <div v-if="episode.showAudio" class="mt-5">
                 <div class="flex gap-2 mb-2">
