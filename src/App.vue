@@ -20,10 +20,11 @@
         Search
       </button>
       <button
-        @click="showListened = !showListened"
+        @click="showFinished = !showFinished"
+         :style="{ filter: !showFinished ? 'brightness(50%)' : '' }"
         class="px-4 py-2 bg-rose-500 text-white rounded hover:bg-rose-600 transition float-right"
       >
-        hide watched
+        hide finsihed
       </button>
 
       <div v-if="loading" class="mt-4 text-center">
@@ -62,7 +63,7 @@
         <ul class="space-y-4">
           <template v-for="(episode, index) in episodes" :key="index">
 
-            <li class="border p-4 rounded" v-if="!showListened || !episode.finished">
+            <li class="border p-4 rounded" v-if="!showFinished || !episode.finished">
               <h3 class="text-lg font-semibold">{{ index+1 }}. {{ episode.title }}</h3>
               <!-- <small class="text-sm text-gray-600">{{ episode.pubDate }}</small> -->
               <small class="text-sm text-gray-600">{{ formatDate(episode.pubDate) }}</small>
@@ -143,7 +144,7 @@ export default {
       episodes: [],
       loading: false,
       listenedHistory: {}, // Tracks listened episodes
-      showListened: false,
+      showFinished: false,
     };
   },
   created() {
