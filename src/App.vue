@@ -65,7 +65,9 @@
             <li class="border p-4 rounded" v-if="!showListened || !isListened(episode.guid)">
               <h3 class="text-lg font-semibold">{{ index+1 }}. {{ episode.title }}</h3>
               <!-- <small class="text-sm text-gray-600">{{ episode.pubDate }}</small> -->
-              <small class="text-sm text-gray-600">{{ formatDate(episode.pubDate) }}</small><br>
+              <small class="text-sm text-gray-600">{{ formatDate(episode.pubDate) }}</small>
+              <small class="float-right">{{getHistory(episode.guid) }}</small>
+              <br>
   
               <button
                 @click="episode.showAudio = !episode.showAudio"
@@ -108,7 +110,15 @@
                     +15
                   </button>
                 </div>
-                <audio ref="audioPlayer" :src="episode.audioUrl" controls class="w-full"></audio>
+                <!-- <audio ref="audioPlayer" :src="episode.audioUrl" controls class="w-full"></audio> -->
+                <audio
+                  ref="audioPlayer"
+                  :src="episode.audioUrl"
+                  controls
+                  class="w-full"
+                  @timeupdate="saveListeningProgress(episode.guid, $event)"
+                  @loadedmetadata="loadListeningProgress(episode.guid, $event)"
+                ></audio>
   
                 <!-- <audio :src="episode.audioUrl" controls class="w-full"></audio><br> -->
               </div>
@@ -133,7 +143,7 @@ export default {
       episodes: [],
       loading: false,
       listenedHistory: {}, // Tracks listened episodes
-      showListened: true,
+      showListened: false,
     };
   },
   created() {
@@ -144,6 +154,56 @@ export default {
     const audio = this.$refs.audioPlayer[index];
     if (audio) {
       audio.currentTime = Math.min(audio.currentTime + seconds, audio.duration);
+    }
+  },
+  // Save progress during playback
+  saveListeningProgress(guid, event) {
+    const audio = event.target;
+    if (audio.currentTime > 0) {
+      this.listenedHistory[guid] = {
+        ...this.listenedHistory[guid],
+        currentTime: audio.currentTime,
+        duration: audio.duration,
+      };
+      this.saveListenedHistory();
+    }
+  },
+  calculateDuration(fileSize, bitrate = 96) {
+    const bitsPerSecond = bitrate * 1000;
+    const durationInSeconds = (fileSize * 8) / bitsPerSecond;
+    return Math.floor(durationInSeconds); // Return duration in seconds
+  },
+
+  // Load progress when playback starts
+  loadListeningProgress(guid, event) {
+    const audio = event.target;
+    const savedData = this.listenedHistory[guid];
+    if (savedData && savedData.currentTime) {
+      audio.currentTime = savedData.currentTime;
+    }
+  },
+
+  getHistory(guid) {
+    // const audio = event.target;
+    if(!this.listenedHistory[guid]) return ``;
+    const current = Math.floor(this.listenedHistory[guid].currentTime / 60);
+    const duration = Math.floor(this.listenedHistory[guid].duration / 60);
+    return `${current} / ${duration} mins`
+    // if (savedData && savedData.currentTime) {
+    //   audio.currentTime = savedData.currentTime;
+    // }
+  },
+
+  // Save listening history to localStorage
+  saveListenedHistory() {
+    localStorage.setItem('listenedHistory', JSON.stringify(this.listenedHistory));
+  },
+
+  // Load listening history from localStorage
+  loadListenedHistory() {
+    const history = localStorage.getItem('listenedHistory');
+    if (history) {
+      this.listenedHistory = JSON.parse(history);
     }
   },
     formatDate(dateString) {
@@ -190,17 +250,23 @@ export default {
         const xml = parser.parseFromString(text, 'application/xml');
 
         const items = xml.querySelectorAll('item');
+        
         this.episodes = Array.from(items)
-          .map(item => ({
-            guid: item.querySelector('guid')?.textContent || 'No guid',
-            title: item.querySelector('title')?.textContent || 'No Title',
-            description:
-              item.querySelector('description')?.textContent || 'No Description',
-            pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
-            audioUrl: item.querySelector('enclosure')?.getAttribute('url'),
-            showAudio: false, // Tracks audio player visibility
-          }))
-          .reverse();
+  .map(item => {
+    const fileSize = parseInt(item.querySelector('enclosure')?.getAttribute('length') || '0', 10);
+    return {
+      guid: item.querySelector('guid')?.textContent || 'No guid',
+      title: item.querySelector('title')?.textContent || 'No Title',
+      description:
+        item.querySelector('description')?.textContent || 'No Description',
+      pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
+      audioUrl: item.querySelector('enclosure')?.getAttribute('url'),
+      fileSize, // Store the length attribute
+      duration: this.calculateDuration(fileSize), // Calculate and store duration
+      showAudio: false, // Tracks audio player visibility
+    };
+  })
+  .reverse();
       } catch (error) {
         console.error('Error fetching episodes:', error);
       } finally {
@@ -217,15 +283,6 @@ export default {
     },
     isListened(guid) {
       return !!this.listenedHistory[guid];
-    },
-    saveListenedHistory() {
-      localStorage.setItem('listenedHistory', JSON.stringify(this.listenedHistory));
-    },
-    loadListenedHistory() {
-      const history = localStorage.getItem('listenedHistory');
-      if (history) {
-        this.listenedHistory = JSON.parse(history);
-      }
     },
   },
 };
