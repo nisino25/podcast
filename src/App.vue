@@ -2,9 +2,9 @@
   <div class="bg-gray-100 min-h-screen flex items-center justify-center">
     <div v-if="selected == 'clips'" class="w-full max-w-4xl bg-white shadow-md rounded p-6">
       <h1 class="text-2xl font-bold mb-4 text-center">Showing your clips</h1>
-      <p>Still working...</p>
+      <p>Not released yet...</p>
     </div>
-    <div v-if="selected == 'favorites'" class="w-full max-w-4xl bg-white shadow-md rounded p-6">
+    <div v-if="selected == 'favorites' && episodes.length == 0" class="w-full max-w-4xl bg-white shadow-md rounded p-6">
       <h1 class="text-2xl font-bold mb-4 text-center">Favorite List</h1>
 
       <!-- Empty Favorites Message -->
@@ -57,7 +57,7 @@
       </div>
 
     </div>
-    <div v-if="selected == 'search'" class="w-full max-w-4xl bg-white shadow-md rounded p-6">
+    <div v-if="selected == 'search' && episodes.length == 0" class="w-full max-w-4xl bg-white shadow-md rounded p-6">
       <h1 class="text-2xl font-bold mb-4 text-center">Podcast Search</h1>
       <div class="mb-6">
         <div class="flex items-center space-x-2">
@@ -133,16 +133,30 @@
       
     </div>
 
-    <div v-if="episodes.length > 0" class="w-full max-w-4xl p-6">
+    <div v-if="episodes.length > 0" class="w-full max-w-4xl p-6 pt-12 pd-12 bg-white">
       <!-- Header -->
-      <div class="flex justify-between p-2 items-center pb-2">
-        <h2 class="text-md font-semibold">Episodes: {{ episodes.length }}</h2>
-        <button @click="toggleShowFinished">
-          <i
-            :class="!showFinished ? 'fa fa-eye' : 'fa-solid fa-eye-slash'"
-            class="text-1xl"
-          ></i>
-        </button>
+      <div class="flex justify-between p-2 items-center pb-2 mb-2">
+        <h2 class="text-md font-semibold">
+          Episodes: {{ episodes.length }}
+          <span @click="toggleSorting" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded-full ml-2">
+            Sort
+            <i
+              :class="{
+                'fa-solid fa-arrow-up': sorting === 'ascending',
+                'fa-solid fa-arrow-down': sorting === 'descending'
+              }"
+              class="ml-1"
+            ></i>
+          </span>
+        </h2>
+        <div class="text-lg">
+          <i @click="episodes = []" class="fa-solid fa-delete-left mr-3 text-red-1000"></i>
+          <button @click="toggleShowFinished">
+            <i
+              :class="!showFinished ? 'fa fa-eye' : 'fa-solid fa-eye-slash'"
+              class="text-base"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Episodes List -->
@@ -156,7 +170,7 @@
           >
             <!-- Episode Title -->
             <h3 class="text-lg font-semibold">
-              {{ index + 1 }}. {{ episode.title }}
+              {{ sortedIndex(index) }}. {{ episode.title }}
             </h3>
 
             <!-- Episode Details -->
@@ -261,6 +275,7 @@ export default {
         src: "",
         title: "",
       },
+      sorting: 'descending',
 
       favorites: [], // Favorite shows
       loading: false,
@@ -284,11 +299,22 @@ export default {
       this.selected = id;
       this.$emit('update:selected', id); // Emit selected event for parent to handle
     },
+    toggleSorting() {
+          this.sorting = this.sorting === 'ascending' ? 'descending' : 'ascending';
+          this.episodes.reverse();
+        },
+        sortedIndex(index) {
+      // Compute the correct index based on sorting
+      return this.sorting === "ascending"
+        ? index + 1
+        : this.episodes.length - index;
+    },
     playAudio(episode) {
     // Pause the current audio if it exists
     if (this.audio) {
       this.audio.pause();
     }
+    
 
     // Set up the new audio
     this.currentAudio.src = episode.audioUrl;
@@ -382,6 +408,13 @@ export default {
       }
     }
   },
+
+  toggleShowFinished() {
+      this.showFinished = !this.showFinished;
+    },
+    toggleFinished(episode) {
+      episode.finished = !episode.finished;
+    },
   skipAudio(seconds) {
     if (this.audio) {
       const newTime = this.audio.currentTime + seconds;
@@ -505,6 +538,8 @@ export default {
     },
     async searchPodcasts() {
       if (!this.query.trim()) return;
+
+      this.sorting = 'descending'
 
       this.hasSearched = true
       this.loading = true;
