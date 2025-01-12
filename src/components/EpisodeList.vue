@@ -16,66 +16,75 @@
       <li
         v-for="(episode, index) in filteredEpisodes"
         :key="index"
-        class="border p-2 rounded bg-gray-100"
+        class="border p-2 rounded bg-gray-100 cursor-pointer"
+        @click="playAudio(episode)"
       >
         <!-- Episode Title -->
-        <h3 class="text-lg font-semibold">{{ index + 1 }}. {{ episode.title }}</h3>
+        <h3 class="text-lg font-semibold">
+          {{ index + 1 }}. {{ episode.title }}
+        </h3>
 
         <!-- Episode Details -->
         <div class="flex justify-between p-2 items-center pb-0">
-          <small class="text-sm text-gray-600">{{ formatDate(episode.pubDate) }}</small>
+          <small class="text-sm text-gray-600">
+            {{ formatDate(episode.pubDate) }}
+          </small>
 
           <small v-if="getHistory(episode.guid)" class="float-right">
             {{ getHistory(episode.guid) }}
           </small>
 
-          <button @click="toggleFinished(episode)" class="transition">
+          <button @click.stop="toggleFinished(episode)" class="transition">
             <i
               :class="episode.finished ? 'fa fa-check' : 'fa-solid fa-headphones-simple'"
               class="text-1xl"
             ></i>
           </button>
         </div>
-
-        <!-- Audio Controls -->
-        <div v-if="episode.showAudio" class="mt-5">
-          <div class="flex gap-2 mb-2">
-            <button
-              @click="skipAudio(-15, index)"
-              class="px-4 py-1 text-sm text-white bg-red-500 rounded hover:bg-red-600 transition"
-            >
-              -15
-            </button>
-            <button
-              @click="skipAudio(-5, index)"
-              class="px-4 py-1 text-sm text-white bg-orange-500 rounded hover:bg-orange-600 transition"
-            >
-              -5
-            </button>
-            <button
-              @click="skipAudio(5, index)"
-              class="px-4 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-600 transition"
-            >
-              +5
-            </button>
-            <button
-              @click="skipAudio(15, index)"
-              class="px-4 py-1 text-sm text-white bg-green-500 rounded hover:bg-green-600 transition"
-            >
-              +15
-            </button>
-          </div>
-          <audio
-            ref="audioPlayer"
-            :src="episode.audioUrl"
-            controls
-            class="w-full"
-            @timeupdate="saveListeningProgress(episode.guid, $event)"
-            @loadedmetadata="loadListeningProgress(episode.guid, $event)"
-          ></audio>
-        </div>
       </li>
     </ul>
+
+    <!-- Audio Player -->
+    <div
+      v-if="currentAudio.src"
+      class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-2 shadow-md z-50"
+    >
+      <!-- Episode Title -->
+      <div class="text-center">
+        <h3 class="truncate text-sm">{{ currentAudio.title }}</h3>
+        <br />
+        <span>{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
+      </div>
+      <br />
+
+      <!-- Audio Controls -->
+      <div class="flex items-center space-x-4">
+        <!-- Backward 20 seconds -->
+        <button @click="skipAudio(-20)">
+          <i class="fa fa-backward text-lg"></i>
+        </button>
+
+        <!-- Backward 5 seconds -->
+        <button @click="skipAudio(-5)">
+          <i class="fa fa-step-backward text-lg"></i>
+        </button>
+
+        <!-- Play/Pause -->
+        <button @click="togglePlay">
+          <i :class="isPaused ? 'fa fa-play' : 'fa fa-pause'" class="text-lg"></i>
+        </button>
+
+        <!-- Forward 5 seconds -->
+        <button @click="skipAudio(5)">
+          <i class="fa fa-step-forward text-lg"></i>
+        </button>
+
+        <!-- Forward 20 seconds -->
+        <button @click="skipAudio(20)">
+          <i class="fa fa-forward text-lg"></i>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -89,7 +98,15 @@ export default {
   },
   data() {
     return {
-      showFinished: false,
+      showFinished: true,
+      currentAudio: {
+        src: "",
+        title: "",
+      },
+      audio: null,
+      isPaused: true,
+      currentTime: 0,
+      duration: 0,
     };
   },
   computed: {
@@ -106,26 +123,49 @@ export default {
     toggleFinished(episode) {
       episode.finished = !episode.finished;
     },
-    skipAudio(seconds, index) {
-      const audio = this.$refs.audioPlayer[index];
-      if (audio) {
-        audio.currentTime = Math.min(
-          Math.max(audio.currentTime + seconds, 0),
-          audio.duration
+    playAudio(episode) {
+      if (this.audio) {
+        this.audio.pause();
+      }
+      this.currentAudio.src = episode.audioUrl;
+      this.currentAudio.title = episode.title;
+      this.audio = new Audio(this.currentAudio.src);
+
+      this.audio.addEventListener("timeupdate", () => {
+        this.currentTime = this.audio.currentTime;
+        this.duration = this.audio.duration;
+      });
+
+      const savedData = this.getHistory(episode.guid);
+      if (savedData) {
+        this.audio.currentTime = savedData.currentTime || 0;
+      }
+
+      this.audio.play();
+      this.isPaused = false;
+    },
+    togglePlay() {
+      if (this.audio.paused) {
+        this.audio.play();
+        this.isPaused = false;
+      } else {
+        this.audio.pause();
+        this.isPaused = true;
+      }
+    },
+    skipAudio(seconds) {
+      if (this.audio) {
+        this.audio.currentTime = Math.max(
+          0,
+          Math.min(this.audio.currentTime + seconds, this.audio.duration)
         );
       }
     },
-    saveListeningProgress(guid, event) {
-      const audio = event.target;
-      this.$emit("save-progress", {
-        guid,
-        currentTime: audio.currentTime,
-        duration: audio.duration,
-      });
-    },
-    loadListeningProgress(guid, event) {
-      const audio = event.target;
-      this.$emit("load-progress", { guid, audio });
+    formatTime(seconds) {
+      if (!seconds) return "0:00";
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${remainingSeconds}`;
     },
     formatDate(dateString) {
       const date = new Date(dateString);
@@ -138,9 +178,15 @@ export default {
       return this.$emit("get-history", guid);
     },
   },
+  beforeUnmount() {
+    if (this.audio) {
+      this.audio.pause();
+      this.audio = null;
+    }
+  },
 };
 </script>
 
 <style scoped>
-/* Add specific styles if necessary */
+/* Add any necessary styles */
 </style>

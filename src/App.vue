@@ -13,7 +13,7 @@
       </div>
 
       <!-- Favorites Grid -->
-      <div v-else class="mt-6">
+      <div v-if="favorites.length > 0 && episodes.length ==0" class="mt-6">
         <div class="grid grid-cols-2 gap-4 mb-10">
           <div
             v-for="(podcast, index) in favorites"
@@ -55,15 +55,8 @@
           </div>
         </div>
       </div>
-      <EpisodeList
-        :episodes="episodes"
-        @save-progress="saveListeningProgress"
-        @load-progress="loadListeningProgress"
-        @get-history="getHistory"
-      />
 
     </div>
-
     <div v-if="selected == 'search'" class="w-full max-w-4xl bg-white shadow-md rounded p-6">
       <h1 class="text-2xl font-bold mb-4 text-center">Podcast Search</h1>
       <div class="mb-6">
@@ -137,34 +130,138 @@
         </div>
       </div>
 
-      <EpisodeList
-        :episodes="episodes"
-        @save-progress="saveListeningProgress"
-        @load-progress="loadListeningProgress"
-        @get-history="getHistory"
-      />
-
-
-
-      <div v-if="!loading && !podcasts.length && query && hasSearched" class="mt-6 text-center">
-        <p class="text-gray-500">No results found. Try another search.</p>
-      </div>
+      
     </div>
-    
+
+    <div v-if="episodes.length > 0" class="w-full max-w-4xl p-6">
+      <!-- Header -->
+      <div class="flex justify-between p-2 items-center pb-2">
+        <h2 class="text-md font-semibold">Episodes: {{ episodes.length }}</h2>
+        <button @click="toggleShowFinished">
+          <i
+            :class="!showFinished ? 'fa fa-eye' : 'fa-solid fa-eye-slash'"
+            class="text-1xl"
+          ></i>
+        </button>
+      </div>
+
+      <!-- Episodes List -->
+      <div>
+        <ul class="space-y-4 mb-20 pb-20">
+          <li
+            v-for="(episode, index) in episodes"
+            :key="index"
+            class="border p-2 rounded bg-gray-100 cursor-pointer"
+            @click="playAudio(episode)"
+          >
+            <!-- Episode Title -->
+            <h3 class="text-lg font-semibold">
+              {{ index + 1 }}. {{ episode.title }}
+            </h3>
+
+            <!-- Episode Details -->
+            <div class="flex justify-between p-2 items-center pb-0">
+              <small class="text-sm text-gray-600">
+                {{ formatDate(episode.pubDate) }}
+              </small>
+
+              <small v-if="getHistory(episode.guid)" class="float-right">
+                {{ getHistory(episode.guid) }}
+              </small>
+
+              <button @click.stop="toggleFinished(episode)" class="transition">
+                <i
+                  :class="episode.finished ? 'fa fa-check' : 'fa-solid fa-headphones-simple'"
+                  class="text-1xl"
+                ></i>
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Audio Player -->
+      <div v-if="currentAudio.src" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-2 shadow-md z-50">
+        <div class="text-center">
+          <h3 class="text-sm text-left">{{ currentAudio.title }}</h3>
+          <br />
+          <span>{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
+        </div>
+        <br />
+        <div class="flex items-center space-x-4">
+          <button @click="skipAudio(-20)"><i class="fa fa-backward text-lg"></i></button>
+          <button @click="skipAudio(-5)"><i class="fa fa-step-backward text-lg"></i></button>
+          <button @click="togglePlay">
+            <i :class="isPaused ? 'fa fa-play' : 'fa fa-pause'" class="text-lg"></i>
+          </button>
+          <button @click="skipAudio(5)"><i class="fa fa-step-forward text-lg"></i></button>
+          <button @click="skipAudio(20)"><i class="fa fa-forward text-lg"></i></button>
+        </div>
+
+
+
+
+        <div v-if="!loading && !podcasts.length && query && hasSearched" class="mt-6 text-center">
+          <p class="text-gray-500">No results found. Try another search.</p>
+        </div>
+      </div>
   </div>
-  <BottomNavigation :default-selected="selected" @update:selected="handleSelection"/>
+    <!-- <AudioPlayer v-if="currentAudio.src" :src="currentAudio.src" :title="currentAudio.title" /> -->
+
+    <!-- <BottomNavigation :default-selected="selected" @update:selected="handleSelection"/> -->
+    <div class="fixed bottom-0 w-full bg-gray-800 text-white flex justify-around py-4 shadow-lg pb-8">
+      <button
+        v-for="item in navItems"
+        :key="item.id"
+        @click="selectItem(item.id)"
+        :class="selected === item.id ? item.activeColor : 'text-gray-400'"
+        class="flex flex-col items-center"
+      >
+        <i :class="`fa ${item.icon} text-3xl`"></i>
+      </button>
+    </div>
+  </div>
 </template>
 
 <script>
-import BottomNavigation from './components/BottomNavigation.vue';
-import EpisodeList from './components/EpisodeList.vue';
+
+// import AudioPlayer from './components/AudioPlayer.vue';
+// import BottomNavigation from './components/BottomNavigation.vue';
+// import EpisodeList from './components/EpisodeList.vue';
+
 export default {
   data() {
     return {
       selected: 'favorites', 
+      navItems: [
+        {
+          id: 'clips',
+          label: 'Clips',
+          icon: 'fa-scissors',
+          activeColor: 'text-green-400',
+        },
+        {
+          id: 'favorites',
+          label: 'Favorites',
+          icon: 'fa-star',
+          activeColor: 'text-yellow-400',
+        },
+        {
+          id: 'search',
+          label: 'Search',
+          icon: 'fa-search',
+          activeColor: 'text-blue-400',
+        },
+      ],
+
       query: 'Jordan B Peterson', // Default query
       podcasts: [],
       episodes: [],
+      currentAudio: {
+        src: "",
+        title: "",
+      },
+
       favorites: [], // Favorite shows
       loading: false,
       listenedHistory: {}, // Tracks listened episodes
@@ -173,15 +270,147 @@ export default {
     };
   },
   components: {
-    BottomNavigation,
-    EpisodeList,
+    // AudioPlayer,
+    // BottomNavigation,
+    // EpisodeList,
   },
   created() {
+    console.clear()
     this.loadListenedHistory();
     this.loadFavorites();
   },
   methods: {
-    
+    selectItem(id) {
+      this.selected = id;
+      this.$emit('update:selected', id); // Emit selected event for parent to handle
+    },
+    playAudio(episode) {
+    // Pause the current audio if it exists
+    if (this.audio) {
+      this.audio.pause();
+    }
+
+    // Set up the new audio
+    this.currentAudio.src = episode.audioUrl;
+    this.currentAudio.title = episode.title;
+    this.audio = new Audio(this.currentAudio.src);
+
+    // Load saved progress if available
+    const savedData = this.listenedHistory[episode.guid];
+    if (savedData && savedData.currentTime) {
+      this.audio.currentTime = savedData.currentTime;
+    }
+
+    // Update currentTime and duration during playback
+    this.audio.addEventListener("timeupdate", () => {
+      this.currentTime = this.audio.currentTime;
+      this.duration = this.audio.duration;
+
+      // Save listening progress
+      this.listenedHistory[episode.guid] = {
+        currentTime: this.audio.currentTime,
+        duration: this.audio.duration,
+      };
+      this.saveListenedHistory();
+    });
+
+    // Clear the history when the audio ends
+    this.audio.addEventListener("ended", () => {
+      delete this.listenedHistory[episode.guid];
+      this.saveListenedHistory();
+    });
+
+    // Play the audio
+    this.audio.play();
+    this.isPaused = false;
+  },
+  async viewEpisodes(feedUrl) {
+  this.loading = true; // Show loading spinner
+  this.episodes = []; // Clear previous episodes
+
+  try {
+    const response = await fetch(feedUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch episodes: ${response.statusText}`);
+    }
+    const text = await response.text();
+
+    // Parse the XML
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'application/xml');
+
+    // Check for parsing errors
+    if (xml.querySelector('parsererror')) {
+      throw new Error('Error parsing XML');
+    }
+
+    const items = xml.querySelectorAll('item');
+    this.episodes = Array.from(items).map((item) => {
+      const fileSize = parseInt(
+        item.querySelector('enclosure')?.getAttribute('length') || '0',
+        10
+      );
+
+      return {
+        guid: item.querySelector('guid')?.textContent || 'No guid',
+        title: item.querySelector('title')?.textContent || 'No Title',
+        description:
+          item.querySelector('description')?.textContent || 'No Description',
+        pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
+        audioUrl: item.querySelector('enclosure')?.getAttribute('url') || '',
+        fileSize, // Store the length attribute
+        duration: this.calculateDuration(fileSize), // Calculate duration if fileSize is provided
+        showAudio: false, // Tracks audio player visibility
+      };
+    });
+
+  } catch (error) {
+    console.error('Error fetching episodes:', error.message);
+    alert('Failed to fetch episodes. Please try again later.');
+  } finally {
+    this.loading = false; // Hide loading spinner
+  }
+},
+  togglePlay() {
+    if (this.audio) {
+      if (this.audio.paused) {
+        this.audio.play();
+        this.isPaused = false;
+      } else {
+        this.audio.pause();
+        this.isPaused = true;
+      }
+    }
+  },
+  skipAudio(seconds) {
+    if (this.audio) {
+      const newTime = this.audio.currentTime + seconds;
+      this.audio.currentTime = Math.max(0, Math.min(newTime, this.audio.duration));
+    }
+  },
+  saveListenedHistory() {
+    localStorage.setItem("listenedHistory", JSON.stringify(this.listenedHistory));
+  },
+  loadListenedHistory() {
+    const history = localStorage.getItem("listenedHistory");
+    if (history) {
+      this.listenedHistory = JSON.parse(history);
+    }
+  },
+  getHistory(guid) {
+    const savedData = this.listenedHistory[guid];
+    if (savedData && savedData.currentTime) {
+      const current = Math.floor(savedData.currentTime / 60);
+      const duration = Math.floor(savedData.duration / 60);
+      return `${current} / ${duration} mins`;
+    }
+    return null;
+  },
+
+
+
+
+
     // Toggle a podcast as favorite
     toggleFavorite(podcast, confirmRequired = false) {
       // If confirmation is required, ask the user
@@ -221,7 +450,6 @@ export default {
       const savedFavorites = localStorage.getItem("favoritePodcasts");
       if (savedFavorites) {
         this.favorites = JSON.parse(savedFavorites);
-        console.log(this.favorites)
         
       }else{
         this.selected = 'search'
@@ -230,12 +458,7 @@ export default {
     handleSelection(selectedItem) {
       this.selected = selectedItem; // Update App.vue's selected state
     },
-    skipAudio(seconds, index) {
-      const audio = this.$refs.audioPlayer[index];
-      if (audio) {
-        audio.currentTime = Math.min(audio.currentTime + seconds, audio.duration);
-      }
-    },
+    
     // Save progress during playback
     saveListeningProgress(guid, event) {
       const audio = event.target;
@@ -263,29 +486,16 @@ export default {
       }
     },
 
-    getHistory(guid) {
-      // const audio = event.target;
-      if(!this.listenedHistory[guid]) return false;
-      const current = Math.floor(this.listenedHistory[guid].currentTime / 60);
-      const duration = Math.floor(this.listenedHistory[guid].duration / 60);
-      return `${current} / ${duration} mins`
-      // if (savedData && savedData.currentTime) {
-      //   audio.currentTime = savedData.currentTime;
-      // }
+
+    formatTime(seconds) {
+      if (!seconds) return "0:00";
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${remainingSeconds}`;
     },
 
-    // Save listening history to localStorage
-    saveListenedHistory() {
-      localStorage.setItem('listenedHistory', JSON.stringify(this.listenedHistory));
-    },
+    
 
-    // Load listening history from localStorage
-    loadListenedHistory() {
-      const history = localStorage.getItem('listenedHistory');
-      if (history) {
-        this.listenedHistory = JSON.parse(history);
-      }
-    },
     formatDate(dateString) {
       const date = new Date(dateString);
       const year = date.getFullYear();
@@ -308,7 +518,6 @@ export default {
           )}&media=podcast&entity=podcast&limit=10`
         );
         const data = await response.json();
-        console.log(data.results)
         this.podcasts = data.results.map(result => ({
           collectionName: result.collectionName,
           artistName: result.artistName,
@@ -321,40 +530,7 @@ export default {
         this.loading = false;
       }
     },
-    async viewEpisodes(feedUrl) {
-      this.loading = true;
-      this.episodes = [];
-
-      try {
-        const response = await fetch(feedUrl);
-        const text = await response.text();
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(text, 'application/xml');
-
-        const items = xml.querySelectorAll('item');
-        
-        this.episodes = Array.from(items)
-        .map(item => {
-          const fileSize = parseInt(item.querySelector('enclosure')?.getAttribute('length') || '0', 10);
-          return {
-            guid: item.querySelector('guid')?.textContent || 'No guid',
-            title: item.querySelector('title')?.textContent || 'No Title',
-            description:
-              item.querySelector('description')?.textContent || 'No Description',
-            pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
-            audioUrl: item.querySelector('enclosure')?.getAttribute('url'),
-            fileSize, // Store the length attribute
-            duration: this.calculateDuration(fileSize), // Calculate and store duration
-            showAudio: false, // Tracks audio player visibility
-          };
-        })
-        .reverse();
-      } catch (error) {
-        console.error('Error fetching episodes:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
+    
     toggleListened(guid) {
       if (this.listenedHistory[guid]) {
         delete this.listenedHistory[guid];
@@ -368,16 +544,22 @@ export default {
     },
   },
   watch: {
-  selected(newVal) {
-    // Clear episodes on switching
-    this.episodes = [];
+    selected(newVal) {
+      // Clear episodes on switching
+      this.episodes = [];
 
-    if (newVal === 'search') {
-      // Reset the search state when switching to the search view
-      this.hasSearched = false;
+      if (newVal === 'search') {
+        // Reset the search state when switching to the search view
+        this.hasSearched = false;
+      }
     }
-  }
-}
+  },
+  beforeUnmount() {
+    if (this.audio) {
+      this.audio.pause();
+      this.audio = null;
+    }
+  },
 
 };
 </script>

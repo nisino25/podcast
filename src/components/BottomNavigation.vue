@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed bottom-0 w-full bg-gray-800 text-white flex justify-around py-3 shadow-lg">
+  <div class="fixed bottom-0 w-full bg-gray-800 text-white flex justify-around py-4 shadow-lg pb-8">
     <button
       v-for="item in navItems"
       :key="item.id"
@@ -7,7 +7,7 @@
       :class="selected === item.id ? item.activeColor : 'text-gray-400'"
       class="flex flex-col items-center"
     >
-      <i :class="`fa ${item.icon} text-2xl`"></i>
+      <i :class="`fa ${item.icon} text-3xl`"></i>
     </button>
   </div>
 </template>
