@@ -142,8 +142,8 @@
             Sort
             <i
               :class="{
-                'fa-solid fa-arrow-up': sorting === 'ascending',
-                'fa-solid fa-arrow-down': sorting === 'descending'
+                'fa-solid fa-arrow-up': sorting === 'descending',
+                'fa-solid fa-arrow-down': sorting === 'ascending'
               }"
               class="ml-1"
             ></i>
@@ -276,7 +276,7 @@ export default {
         title: "",
       },
       isPaused: true,
-      sorting: 'descending',
+      sorting: 'ascending',
 
       favorites: [], // Favorite shows
       loading: false,
@@ -395,6 +395,7 @@ export default {
           showAudio: false, // Tracks audio player visibility
         };
       });
+      this.episodes.reverse()
 
     } catch (error) {
       console.error('Error fetching episodes:', error.message);
@@ -591,7 +592,8 @@ export default {
         // Reset the search state when switching to the search view
         this.hasSearched = false;
       }
-    }
+    },
+    
   },
   beforeUnmount() {
     if (this.audio) {
