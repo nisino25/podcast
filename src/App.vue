@@ -183,7 +183,7 @@
 
               <button @click.stop="toggleFinished(episode)" class="transition">
                 <i
-                  :class="episode.finished ? 'fa fa-check' : 'fa-solid fa-headphones-simple'"
+                  :class="episode.finished ? 'fa fa-check text-green-800 font-bold' : 'fa-solid fa-headphones-simple'"
                   class="text-1xl"
                 ></i>
               </button>
@@ -205,6 +205,7 @@
           <button @click="skipAudio(-5)"><i class="fa fa-step-backward"></i></button>
           <button @click="togglePlay">
             <i :class="isPaused ? 'fa fa-play' : 'fa fa-pause'"></i>
+            <!-- <i :class="isPaused ? 'fa fa-play' : 'fa fa-pause'"></i> -->
           </button>
           <button @click="skipAudio(5)"><i class="fa fa-step-forward"></i></button>
           <button @click="skipAudio(20)"><i class="fa fa-forward"></i></button>
@@ -310,100 +311,197 @@ export default {
         ? index + 1
         : this.episodes.length - index;
     },
-    playAudio(episode) {
-      // Pause the current audio if it exists
-      if (this.audio) {
-        this.audio.pause();
-      }
+  //   playAudio(episode) {
+  //     // Pause the current audio if it exists
+  //     if (this.audio) {
+  //       this.audio.pause();
+  //     }
       
 
-      // Set up the new audio
-      this.currentAudio.src = episode.audioUrl;
-      this.currentAudio.title = episode.title;
-      this.audio = new Audio(this.currentAudio.src);
+  //     // Set up the new audio
+  //     this.currentAudio.src = episode.audioUrl;
+  //     this.currentAudio.title = episode.title;
+  //     this.audio = new Audio(this.currentAudio.src);
 
-      // Load saved progress if available
-      const savedData = this.listenedHistory[episode.guid];
-      if (savedData && savedData.currentTime) {
-        this.audio.currentTime = savedData.currentTime;
-      }
+  //     // Load saved progress if available
+  //     const savedData = this.listenedHistory[episode.guid];
+  //     if (savedData && savedData.currentTime) {
+  //       this.audio.currentTime = savedData.currentTime;
+  //     }
 
-      // Update currentTime and duration during playback
-      this.audio.addEventListener("timeupdate", () => {
-        this.currentTime = this.audio.currentTime;
-        this.duration = this.audio.duration;
+  //     // Update currentTime and duration during playback
+  //     this.audio.addEventListener("timeupdate", () => {
+  //       this.currentTime = this.audio.currentTime;
+  //       this.duration = this.audio.duration;
 
-        // Save listening progress
-        this.listenedHistory[episode.guid] = {
-          currentTime: this.audio.currentTime,
-          duration: this.audio.duration,
-        };
-        this.saveListenedHistory();
-      });
+  //       // Save listening progress
+  //       this.listenedHistory[episode.guid] = {
+  //         currentTime: this.audio.currentTime,
+  //         duration: this.audio.duration,
+  //       };
+  //       this.saveListenedHistory();
+  //     });
 
-      // Clear the history when the audio ends
-      this.audio.addEventListener("ended", () => {
-        delete this.listenedHistory[episode.guid];
-        this.saveListenedHistory();
-      });
+  //     // Clear the history when the audio ends
+  //     this.audio.addEventListener("ended", () => {
+  //       delete this.listenedHistory[episode.guid];
+  //       this.saveListenedHistory();
+  //     });
 
-      // Play the audio
-      this.audio.play();
-      this.isPaused = false;
-  },
+  //     // Play the audio
+  //     this.audio.play();
+  //     this.isPaused = false;
+  // },
+  playAudio(episode) {
+  if (this.audio) {
+    this.audio.pause(); // Pause the current audio if it exists
+  }
+
+  // Set up the new audio
+  this.currentAudio.src = episode.audioUrl;
+  this.currentAudio.title = episode.title;
+  this.audio = new Audio(this.currentAudio.src);
+
+  // Load saved progress if available
+  const savedData = this.listenedHistory[episode.guid];
+  if (savedData && savedData.currentTime) {
+    this.audio.currentTime = savedData.currentTime;
+  }
+
+  // Update currentTime and duration during playback
+  this.audio.addEventListener("timeupdate", () => {
+    this.currentTime = this.audio.currentTime;
+    this.duration = this.audio.duration;
+
+    // Save listening progress
+    this.listenedHistory[episode.guid] = {
+      currentTime: this.audio.currentTime,
+      duration: this.audio.duration,
+    };
+    this.saveListenedHistory();
+  });
+
+  // Clear the history when the audio ends
+  this.audio.addEventListener("ended", () => {
+    delete this.listenedHistory[episode.guid];
+    this.saveListenedHistory();
+  });
+
+  // Listen for play and pause events to update isPaused state
+  this.audio.addEventListener("play", () => {
+    this.isPaused = false;
+  });
+
+  this.audio.addEventListener("pause", () => {
+    this.isPaused = true;
+  });
+
+  // Play the audio
+  this.audio.play();
+  this.isPaused = false;
+},
   deleteAudioPlayer(){
     this.audio.pause();
     this.isPaused = true;
     this.currentAudio = null;
   },
+  // async viewEpisodes(feedUrl) {
+  //   this.loading = true; // Show loading spinner
+  //   this.episodes = []; // Clear previous episodes
+
+  //   try {
+  //     const response = await fetch(feedUrl);
+  //     if (!response.ok) {
+  //       throw new Error(`Failed to fetch episodes: ${response.statusText}`);
+  //     }
+  //     const text = await response.text();
+
+  //     // Parse the XML
+  //     const parser = new DOMParser();
+  //     const xml = parser.parseFromString(text, 'application/xml');
+
+  //     // Check for parsing errors
+  //     if (xml.querySelector('parsererror')) {
+  //       throw new Error('Error parsing XML');
+  //     }
+
+  //     const items = xml.querySelectorAll('item');
+  //     this.episodes = Array.from(items).map((item) => {
+  //       const fileSize = parseInt(
+  //         item.querySelector('enclosure')?.getAttribute('length') || '0',
+  //         10
+  //       );
+
+  //       return {
+  //         guid: item.querySelector('guid')?.textContent || 'No guid',
+  //         title: item.querySelector('title')?.textContent || 'No Title',
+  //         description:
+  //           item.querySelector('description')?.textContent || 'No Description',
+  //         pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
+  //         audioUrl: item.querySelector('enclosure')?.getAttribute('url') || '',
+  //         fileSize, // Store the length attribute
+  //         duration: this.calculateDuration(fileSize), // Calculate duration if fileSize is provided
+  //         showAudio: false, // Tracks audio player visibility
+  //       };
+  //     });
+  //     this.episodes.reverse()
+
+  //   } catch (error) {
+  //     console.error('Error fetching episodes:', error.message);
+  //     alert('Failed to fetch episodes. Please try again later.');
+  //   } finally {
+  //     this.loading = false; // Hide loading spinner
+  //   }
+  // },
   async viewEpisodes(feedUrl) {
-    this.loading = true; // Show loading spinner
-    this.episodes = []; // Clear previous episodes
+  this.loading = true;
+  this.episodes = [];
 
-    try {
-      const response = await fetch(feedUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch episodes: ${response.statusText}`);
-      }
-      const text = await response.text();
-
-      // Parse the XML
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, 'application/xml');
-
-      // Check for parsing errors
-      if (xml.querySelector('parsererror')) {
-        throw new Error('Error parsing XML');
-      }
-
-      const items = xml.querySelectorAll('item');
-      this.episodes = Array.from(items).map((item) => {
-        const fileSize = parseInt(
-          item.querySelector('enclosure')?.getAttribute('length') || '0',
-          10
-        );
-
-        return {
-          guid: item.querySelector('guid')?.textContent || 'No guid',
-          title: item.querySelector('title')?.textContent || 'No Title',
-          description:
-            item.querySelector('description')?.textContent || 'No Description',
-          pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
-          audioUrl: item.querySelector('enclosure')?.getAttribute('url') || '',
-          fileSize, // Store the length attribute
-          duration: this.calculateDuration(fileSize), // Calculate duration if fileSize is provided
-          showAudio: false, // Tracks audio player visibility
-        };
-      });
-      this.episodes.reverse()
-
-    } catch (error) {
-      console.error('Error fetching episodes:', error.message);
-      alert('Failed to fetch episodes. Please try again later.');
-    } finally {
-      this.loading = false; // Hide loading spinner
+  try {
+    const response = await fetch(feedUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch episodes: ${response.statusText}`);
     }
-  },
+    const text = await response.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'application/xml');
+    if (xml.querySelector('parsererror')) {
+      throw new Error('Error parsing XML');
+    }
+
+    const items = xml.querySelectorAll('item');
+    this.episodes = Array.from(items).map((item) => {
+      const guid = item.querySelector('guid')?.textContent || 'No guid';
+      const fileSize = parseInt(
+        item.querySelector('enclosure')?.getAttribute('length') || '0',
+        10
+      );
+
+      // Load finished state from listenedHistory
+      const finished =
+        this.listenedHistory[guid]?.finished || false;
+
+      return {
+        guid,
+        title: item.querySelector('title')?.textContent || 'No Title',
+        description:
+          item.querySelector('description')?.textContent || 'No Description',
+        pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
+        audioUrl: item.querySelector('enclosure')?.getAttribute('url') || '',
+        fileSize,
+        duration: this.calculateDuration(fileSize),
+        finished, // Add finished state
+        showAudio: false,
+      };
+    });
+    this.episodes.reverse();
+  } catch (error) {
+    console.error('Error fetching episodes:', error.message);
+    alert('Failed to fetch episodes. Please try again later.');
+  } finally {
+    this.loading = false;
+  }
+},
     togglePlay() {
       if (this.audio) {
         if (this.audio.paused) {
@@ -419,9 +517,22 @@ export default {
     toggleShowFinished() {
         this.showFinished = !this.showFinished;
       },
-      toggleFinished(episode) {
-        episode.finished = !episode.finished;
-      },
+    // toggleFinished(episode) {
+    //     episode.finished = !episode.finished;
+    // },
+    toggleFinished(episode) {
+  const guid = episode.guid;
+  // Toggle finished state
+  episode.finished = !episode.finished;
+
+  // Save finished state to listenedHistory
+  if (!this.listenedHistory[guid]) {
+    this.listenedHistory[guid] = {};
+  }
+
+  this.listenedHistory[guid].finished = episode.finished;
+  this.saveListenedHistory();
+},
     skipAudio(seconds) {
       if (this.audio) {
         const newTime = this.audio.currentTime + seconds;
@@ -593,6 +704,15 @@ export default {
         this.hasSearched = false;
       }
     },
+    // isPaused(newValue) {
+    //   if (this.audio) {
+    //     if (newValue) {
+    //       this.audio.pause();
+    //     } else {
+    //       this.audio.play();
+    //     }
+    //   }
+    // },
     
   },
   beforeUnmount() {
