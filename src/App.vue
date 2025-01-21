@@ -193,7 +193,7 @@
       </div>
 
       <!-- Audio Player -->
-      <div v-if="currentAudio?.src" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-4 pb-8 shadow-md z-50">
+      <div v-if="currentAudio?.src" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-4 pb-12 shadow-md z-50">
         <div class="text-center">
           <h3 class="text-sm text-left">{{ currentAudio.title }}</h3>
           <br />
@@ -224,7 +224,7 @@
     <!-- <AudioPlayer v-if="currentAudio.src" :src="currentAudio.src" :title="currentAudio.title" /> -->
 
     <!-- <BottomNavigation :default-selected="selected" @update:selected="handleSelection"/> -->
-    <div class="fixed bottom-0 w-full bg-gray-800 text-white flex justify-around py-4 shadow-lg pb-8">
+    <div class="fixed bottom-0 w-full bg-gray-800 text-white flex justify-around py-4 shadow-lg pb-12">
       <button
         v-for="item in navItems"
         :key="item.id"
