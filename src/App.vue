@@ -151,7 +151,7 @@
           <i @click="episodes = []" class="fa-solid fa-delete-left text-red-1000"></i>
           <button @click="toggleShowFinished">
             <i
-              :class="!showFinished ? 'fa fa-eye' : 'fa-solid fa-eye-slash'"
+              :class="displayedFinishedEpisode ? 'fa fa-eye' : 'fa-solid fa-eye-slash'"
               class="text-base"></i>
           </button>
         </div>
@@ -160,42 +160,44 @@
       <!-- Episodes List -->
       <div>
         <ul class="space-y-4 mb-20 pb-20">
-          <li
-            v-for="(episode, index) in episodes"
-            :key="index"
-            class="border p-2 rounded bg-gray-100 cursor-pointer"
-            @click="playAudio(episode)"
-          >
-            <!-- Episode Title -->
-            <h3 class="text-lg font-semibold">
-              {{ sortedIndex(index) }}. {{ episode.title }}
-            </h3>
-
-            <!-- Episode Details -->
-            <div class="flex justify-between p-2 items-center pb-0">
-              <small class="text-sm text-gray-600">
-                {{ formatDate(episode.pubDate) }}
-              </small>
-
-              <small v-if="getHistory(episode.guid)" class="float-right">
-                {{ getHistory(episode.guid) }}
-              </small>
-
-              <button v-if="getHistory(episode.guid)" @click.stop="toggleFavoriteEp(episode)" class="transition">
-                <i
-                  :class="episode.isFavorite ? 'fa-solid fa-star text-yellow-500 font-bold' : 'fa-regular fa-star'"
-                  class="text-1xl"
-                ></i>
-              </button>
-
-              <button @click.stop="toggleFinished(episode)" class="transition">
-                <i
-                  :class="episode.finished ? 'fa fa-check text-green-800 font-bold' : 'fa-solid fa-headphones-simple'"
-                  class="text-1xl"
-                ></i>
-              </button>
-            </div>
-          </li>
+          <template v-for="(episode, index) in episodes" :key="index">
+            <li
+              v-if="!(!displayedFinishedEpisode && episode.finished)"
+              class="border p-2 rounded bg-gray-100 cursor-pointer transition-all duration-750"
+              :class="episode.finished ? 'bg-gray-500 opacity-50' : ''"
+              @click="clickEpisode(episode)"
+            >
+              <!-- Episode Title -->
+              <h3 class="text-lg font-semibold">
+                {{ sortedIndex(index) }}. {{ episode.title }}
+              </h3>
+  
+              <!-- Episode Details -->
+              <div class="flex justify-between p-2 items-center pb-0" v-if="!episode.finished">
+                <small class="text-sm text-gray-600">
+                  {{ formatDate(episode.pubDate) }}
+                </small>
+  
+                <small v-if="getHistory(episode.guid)" class="float-right">
+                  {{ getHistory(episode.guid) }}
+                </small>
+  
+                <button v-if="getHistory(episode.guid)" @click.stop="toggleFavoriteEp(episode)" class="transition">
+                  <i
+                    :class="episode.isFavorite ? 'fa-solid fa-star text-yellow-500 font-bold' : 'fa-regular fa-star'"
+                    class="text-1xl"
+                  ></i>
+                </button>
+  
+                <button @click.stop="toggleFinished(episode)" class="transition">
+                  <i
+                    :class="episode.finished ? 'fa fa-check text-green-800 font-bold' : 'fa-solid fa-headphones-simple'"
+                    class="text-1xl"
+                  ></i>
+                </button>
+              </div>
+            </li>
+          </template>
         </ul>
       </div>
 
@@ -289,7 +291,7 @@ export default {
       favorites: [], // Favorite shows
       loading: false,
       listenedHistory: {}, // Tracks listened episodes
-      showFinished: false,
+      displayedFinishedEpisode: true,
       hasSearched: false,
     };
   },
@@ -421,6 +423,11 @@ export default {
       this.loading = false;
     }
   },
+  clickEpisode(episode){
+    if(episode.finished) return episode.finished = false;
+
+    return this.playAudio(episode);
+  },
     togglePlay() {
       if (this.audio) {
         if (this.audio.paused) {
@@ -434,7 +441,7 @@ export default {
     },
 
     toggleShowFinished() {
-      this.showFinished = !this.showFinished;
+      this.displayedFinishedEpisode = !this.displayedFinishedEpisode;
     },
     toggleFinished(episode) {
       const guid = episode.guid;
