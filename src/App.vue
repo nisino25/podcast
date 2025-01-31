@@ -159,16 +159,16 @@
 
       <!-- Episodes List -->
       <div>
-        <ul class="space-y-4 mb-20 pb-20">
+        <ul class="mb-20 pb-20 grid episodes-container">
           <template v-for="(episode, index) in episodes" :key="index">
             <li
               v-if="!(!displayedFinishedEpisode && episode.finished)"
-              class="border p-2 rounded bg-gray-100 cursor-pointer transition-all duration-750"
-              :class="episode.finished ? 'bg-gray-500 opacity-50' : ''"
+              class="episode border p-2 rounded bg-gray-100 cursor-pointer transition-all duration-750"
+              :class="episode.finished ? 'bg-gray-500 opacity-50 finishedEpisode text-sm p-1' : 'text-lg'"
               @click="clickEpisode(episode)"
             >
               <!-- Episode Title -->
-              <h3 class="text-lg font-semibold">
+              <h3 class=" font-semibold" :class="episode.finished ? 'truncate w-40' : ''">
                 {{ sortedIndex(index) }}. {{ episode.title }}
               </h3>
   
@@ -663,5 +663,20 @@ export default {
 </script>
 
 <style>
+.episodes-container{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12.5px;
+}
+.episode{
+  width: 100%;
+}
+.finishedEpisode{
+  width: calc(50% - 7px) !important;
+}
+.finishedEpisode:nth-child(odd):has(+ .half) {
+    display: inline-block;
+}
 /* Add custom styles if needed */
 </style>
