@@ -676,7 +676,7 @@ export default {
   width: calc(50% - 8px) !important;
 }
 .finishedEpisode:nth-child(odd):has(+ .half) {
-    display: inline-block;
+    display: inline-block !important;
 }
 /* Add custom styles if needed */
 </style>
