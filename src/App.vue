@@ -673,10 +673,11 @@ export default {
   width: 100%;
 }
 .finishedEpisode{
-  width: calc(50% - 20px) !important;
+  width: calc(50% - 8px) !important;
+  display: inline-block
 }
-.finishedEpisode:nth-child(odd):has(+ .half) {
+/* .finishedEpisode:nth-child(odd):has(+ .half) {
     display: inline-block !important;
-}
+} */
 /* Add custom styles if needed */
 </style>
