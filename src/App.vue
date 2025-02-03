@@ -667,13 +667,14 @@ export default {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12.5px;
+  /* gap-row: 12.5px; */
 }
 .episode{
   width: 100%;
+  margin-bottom: 10px;
 }
 .finishedEpisode{
-  width: calc(50% - 8px) !important;
+  width: calc(50% - 4px) !important;
   display: inline-block
 }
 /* .finishedEpisode:nth-child(odd):has(+ .half) {
