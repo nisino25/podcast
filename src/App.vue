@@ -168,7 +168,7 @@
               @click="clickEpisode(episode)"
             >
               <!-- Episode Title -->
-              <h3 class=" font-semibold" :class="episode.finished ? 'truncate w-40' : ''">
+              <h3 class=" font-semibold" :class="episode.finished ? 'truncate w-30' : ''">
                 {{ sortedIndex(index) }}. {{ episode.title }}
               </h3>
   
@@ -673,7 +673,7 @@ export default {
   width: 100%;
 }
 .finishedEpisode{
-  width: calc(50% - 7px) !important;
+  width: calc(50% - 8px) !important;
 }
 .finishedEpisode:nth-child(odd):has(+ .half) {
     display: inline-block;
