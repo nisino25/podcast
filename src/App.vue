@@ -657,7 +657,7 @@ export default {
       this.audio.pause();
       this.audio = null;
     }
-  },
+  }, 
 
 };
 </script>
