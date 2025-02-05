@@ -424,7 +424,7 @@ export default {
     }
   },
   clickEpisode(episode){
-    if(episode.finished) return episode.finished = false;
+    if(episode.finished) return this.toggleFinished(episode)
 
     return this.playAudio(episode);
   },
@@ -444,6 +444,7 @@ export default {
       this.displayedFinishedEpisode = !this.displayedFinishedEpisode;
     },
     toggleFinished(episode) {
+      console.log('hey00000');
       const guid = episode.guid;
       // Toggle finished state
       episode.finished = !episode.finished;
@@ -455,6 +456,7 @@ export default {
 
       this.listenedHistory[guid].finished = episode.finished;
       this.saveListenedHistory();
+
     },
     toggleFavoriteEp(episode) {
       const guid = episode.guid;
