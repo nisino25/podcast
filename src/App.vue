@@ -200,6 +200,23 @@
           </template>
         </ul>
       </div>
+  
+    </div>
+    <!-- <AudioPlayer v-if="currentAudio.src" :src="currentAudio.src" :title="currentAudio.title" /> -->
+
+    <!-- <BottomNavigation :default-selected="selected" @update:selected="handleSelection"/> -->
+    <div class="fixed bottom-0 w-full bg-gray-800 text-white flex justify-around py-4 shadow-lg pb-12">
+      <button
+        v-for="item in navItems"
+        :key="item.id"
+        @click="selectItem(item.id)"
+        :class="selected === item.id ? item.activeColor : 'text-gray-400'"
+        class="flex flex-col items-center"
+      >
+        <i :class="`fa ${item.icon} text-3xl`"></i>
+      </button>
+    </div>
+
 
       <!-- Audio Player -->
       <div v-if="currentAudio?.src" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-4 pb-12 shadow-md z-50">
@@ -229,21 +246,6 @@
           <p class="text-gray-500">No results found. Try another search.</p>
         </div>
       </div>
-  </div>
-    <!-- <AudioPlayer v-if="currentAudio.src" :src="currentAudio.src" :title="currentAudio.title" /> -->
-
-    <!-- <BottomNavigation :default-selected="selected" @update:selected="handleSelection"/> -->
-    <div class="fixed bottom-0 w-full bg-gray-800 text-white flex justify-around py-4 shadow-lg pb-12">
-      <button
-        v-for="item in navItems"
-        :key="item.id"
-        @click="selectItem(item.id)"
-        :class="selected === item.id ? item.activeColor : 'text-gray-400'"
-        class="flex flex-col items-center"
-      >
-        <i :class="`fa ${item.icon} text-3xl`"></i>
-      </button>
-    </div>
   </div>
 </template>
 
@@ -304,6 +306,15 @@ export default {
     console.clear()
     this.loadListenedHistory();
     this.loadFavorites();
+
+    // Check if there's a previously played episode
+    const recentEpisode = JSON.parse(localStorage.getItem("recentlyPlayedEpisode"));
+    if (recentEpisode) {
+      console.log('found rhe episode');
+        this.playAudio(recentEpisode, true); // Set up without playing
+    }else{
+      console.log('couldnt find it ')
+    }
   },
   methods: {
     selectItem(id) {
@@ -320,114 +331,132 @@ export default {
         ? index + 1
         : this.episodes.length - index;
     },
-  playAudio(episode) {
-    if (this.audio) {
-      this.audio.pause(); // Pause the current audio if it exists
-    }
+    playAudio(episode, startingUpApp) {
+      if (this.audio) {
+          this.audio.pause(); // Pause the current audio if it exists
+      }
 
-    // Set up the new audio
-    this.currentAudio.src = episode.audioUrl;
-    this.currentAudio.title = episode.title;
-    this.audio = new Audio(this.currentAudio.src);
+      // Set up the new audio
+      this.currentAudio.src = episode.audioUrl;
+      this.currentAudio.title = episode.title;
+      this.audio = new Audio(this.currentAudio.src);
 
-    // Load saved progress if available
-    const savedData = this.listenedHistory[episode.guid];
-    if (savedData && savedData.currentTime) {
-      this.audio.currentTime = savedData.currentTime;
-    }
+      // Load saved progress if available
+      const savedData = this.listenedHistory[episode.guid];
+      if (savedData && savedData.currentTime) {
+        console.log('found the mins');
+        this.audio.currentTime = savedData.currentTime;
+        if(startingUpApp) this.currentTime = savedData.currentTime;
+      }
 
-    // Update currentTime and duration during playback
-    this.audio.addEventListener("timeupdate", () => {
-      this.currentTime = this.audio.currentTime;
-      this.duration = this.audio.duration;
-
-      // Save listening progress
-      this.listenedHistory[episode.guid] = {
-        currentTime: this.audio.currentTime,
-        duration: this.audio.duration,
+      // Save the recently played episode to localStorage
+      const recentEpisode = {
+          guid: episode.guid,
+          title: episode.title,
+          audioUrl: episode.audioUrl,
+          currentTime: this.audio.currentTime || 0,
       };
-      this.saveListenedHistory();
-    });
+      localStorage.setItem("recentlyPlayedEpisode", JSON.stringify(recentEpisode));
 
-    // Clear the history when the audio ends
-    this.audio.addEventListener("ended", () => {
-      delete this.listenedHistory[episode.guid];
-      this.saveListenedHistory();
-    });
+      // Update currentTime and duration during playback
+      this.audio.addEventListener("timeupdate", () => {
+          this.currentTime = this.audio.currentTime;
+          this.duration = this.audio.duration;
 
-    // Listen for play and pause events to update isPaused state
-    this.audio.addEventListener("play", () => {
-      this.isPaused = false;
-    });
+          // Save listening progress
+          this.listenedHistory[episode.guid] = {
+              currentTime: this.audio.currentTime,
+              duration: this.audio.duration,
+          };
+          this.saveListenedHistory();
 
-    this.audio.addEventListener("pause", () => {
-      this.isPaused = true;
-    });
-
-    // Play the audio
-    this.audio.play();
-    this.isPaused = false;
-  },
-  deleteAudioPlayer(){
-    this.audio.pause();
-    this.isPaused = true;
-    this.currentAudio = null;
-  },
-  async viewEpisodes(feedUrl) {
-    this.loading = true;
-    this.episodes = [];
-
-    try {
-      const response = await fetch(feedUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch episodes: ${response.statusText}`);
-      }
-      const text = await response.text();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, 'application/xml');
-      if (xml.querySelector('parsererror')) {
-        throw new Error('Error parsing XML');
-      }
-
-      const items = xml.querySelectorAll('item');
-      this.episodes = Array.from(items).map((item) => {
-        const guid = item.querySelector('guid')?.textContent || 'No guid';
-        const fileSize = parseInt(
-          item.querySelector('enclosure')?.getAttribute('length') || '0',
-          10
-        );
-
-        // Load finished state from listenedHistory
-        const finished = this.listenedHistory[guid]?.finished || false;
-        const isFavorite = this.listenedHistory[guid]?.isFavorite || false;
-
-        return {
-          guid,
-          title: item.querySelector('title')?.textContent || 'No Title',
-          description:
-            item.querySelector('description')?.textContent || 'No Description',
-          pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
-          audioUrl: item.querySelector('enclosure')?.getAttribute('url') || '',
-          fileSize,
-          duration: this.calculateDuration(fileSize),
-          finished, // Add finished state
-          showAudio: false,
-          isFavorite,
-        };
+          // Update localStorage with the latest progress
+          recentEpisode.currentTime = this.audio.currentTime;
+          localStorage.setItem("recentlyPlayedEpisode", JSON.stringify(recentEpisode));
       });
-      this.episodes.reverse();
-    } catch (error) {
-      console.error('Error fetching episodes:', error.message);
-      alert('Failed to fetch episodes. Please try again later.');
-    } finally {
-      this.loading = false;
-    }
-  },
-  clickEpisode(episode){
-    if(episode.finished) return this.toggleFinished(episode)
 
-    return this.playAudio(episode);
-  },
+      // Clear the history when the audio ends
+      this.audio.addEventListener("ended", () => {
+          delete this.listenedHistory[episode.guid];
+          this.saveListenedHistory();
+          localStorage.removeItem("recentlyPlayedEpisode");
+      });
+
+      // Listen for play and pause events to update isPaused state
+      this.audio.addEventListener("play", () => {
+          this.isPaused = false;
+      });
+
+      this.audio.addEventListener("pause", () => {
+          this.isPaused = true;
+      });
+
+      // If not starting up the app, play the audio
+      if (!startingUpApp) {
+          this.audio.play();
+          this.isPaused = false;
+      }
+    },
+    deleteAudioPlayer(){
+      this.audio.pause();
+      this.isPaused = true;
+      this.currentAudio = null;
+    },
+    async viewEpisodes(feedUrl) {
+      this.loading = true;
+      this.episodes = [];
+
+      try {
+        const response = await fetch(feedUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch episodes: ${response.statusText}`);
+        }
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, 'application/xml');
+        if (xml.querySelector('parsererror')) {
+          throw new Error('Error parsing XML');
+        }
+
+        const items = xml.querySelectorAll('item');
+        this.episodes = Array.from(items).map((item) => {
+          const guid = item.querySelector('guid')?.textContent || 'No guid';
+          const fileSize = parseInt(
+            item.querySelector('enclosure')?.getAttribute('length') || '0',
+            10
+          );
+
+          // Load finished state from listenedHistory
+          const finished = this.listenedHistory[guid]?.finished || false;
+          const isFavorite = this.listenedHistory[guid]?.isFavorite || false;
+
+          return {
+            guid,
+            title: item.querySelector('title')?.textContent || 'No Title',
+            description:
+              item.querySelector('description')?.textContent || 'No Description',
+            pubDate: item.querySelector('pubDate')?.textContent || 'No pubDate',
+            audioUrl: item.querySelector('enclosure')?.getAttribute('url') || '',
+            fileSize,
+            duration: this.calculateDuration(fileSize),
+            finished, // Add finished state
+            showAudio: false,
+            isFavorite,
+          };
+        });
+        this.episodes.reverse();
+      } catch (error) {
+        console.error('Error fetching episodes:', error.message);
+        alert('Failed to fetch episodes. Please try again later.');
+      } finally {
+        this.loading = false;
+      }
+    },
+    clickEpisode(episode){
+      if(episode.finished) return this.toggleFinished(episode)
+
+      return this.playAudio(episode);
+    },
     togglePlay() {
       if (this.audio) {
         if (this.audio.paused) {
@@ -496,10 +525,6 @@ export default {
       }
       return null;
     },
-
-
-
-
 
     // Toggle a podcast as favorite
     toggleFavorite(podcast, confirmRequired = false) {
