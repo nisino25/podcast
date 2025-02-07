@@ -219,7 +219,24 @@
 
 
       <!-- Audio Player -->
+      <!-- Audio Player (Using Browser's Default Controls) -->
       <div v-if="currentAudio?.src" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-4 pb-12 shadow-md z-50">
+        <div class="text-center">
+          <h3 class="text-sm text-left mb-3">{{ currentAudio.title }}</h3>
+        </div>
+        
+        <audio
+          ref="audioPlayer"
+          :src="currentAudio.src"
+          controls
+          autoplay
+          @timeupdate="updateProgress"
+          @ended="handleAudioEnd"
+        ></audio>
+      </div>
+
+
+      <!-- <div v-if="currentAudio?.src" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-4 pb-12 shadow-md z-50">
         <div class="text-center">
           <h3 class="text-sm text-left">{{ currentAudio.title }}</h3>
           <br />
@@ -231,7 +248,6 @@
           <button @click="skipAudio(-5)"><i class="fa fa-step-backward"></i></button>
           <button @click="togglePlay">
             <i :class="isPaused ? 'fa fa-play' : 'fa fa-pause'"></i>
-            <!-- <i :class="isPaused ? 'fa fa-play' : 'fa fa-pause'"></i> -->
           </button>
           <button @click="skipAudio(5)"><i class="fa fa-step-forward"></i></button>
           <button @click="skipAudio(20)"><i class="fa fa-forward"></i></button>
@@ -245,7 +261,7 @@
         <div v-if="!loading && !podcasts.length && query && hasSearched" class="mt-6 text-center">
           <p class="text-gray-500">No results found. Try another search.</p>
         </div>
-      </div>
+      </div> -->
   </div>
 </template>
 
@@ -331,71 +347,124 @@ export default {
         ? index + 1
         : this.episodes.length - index;
     },
-    playAudio(episode, startingUpApp) {
-      if (this.audio) {
-          this.audio.pause(); // Pause the current audio if it exists
-      }
+    // playAudio(episode, startingUpApp) {
+    //   if (this.audio) {
+    //       this.audio.pause(); // Pause the current audio if it exists
+    //   }
 
-      // Set up the new audio
-      this.currentAudio.src = episode.audioUrl;
-      this.currentAudio.title = episode.title;
-      this.audio = new Audio(this.currentAudio.src);
+    //   // Set up the new audio
+    //   this.currentAudio.src = episode.audioUrl;
+    //   this.currentAudio.title = episode.title;
+    //   this.audio = new Audio(this.currentAudio.src);
 
-      // Load saved progress if available
-      const savedData = this.listenedHistory[episode.guid];
-      if (savedData && savedData.currentTime) {
-        console.log('found the mins');
-        this.audio.currentTime = savedData.currentTime;
-        if(startingUpApp) this.currentTime = savedData.currentTime;
-      }
+    //   // Load saved progress if available
+    //   const savedData = this.listenedHistory[episode.guid];
+    //   if (savedData && savedData.currentTime) {
+    //     console.log('found the mins');
+    //     this.audio.currentTime = savedData.currentTime;
+    //     if(startingUpApp) this.currentTime = savedData.currentTime;
+    //   }
 
-      // Save the recently played episode to localStorage
-      const recentEpisode = {
-          guid: episode.guid,
-          title: episode.title,
-          audioUrl: episode.audioUrl,
-          currentTime: this.audio.currentTime || 0,
-      };
-      localStorage.setItem("recentlyPlayedEpisode", JSON.stringify(recentEpisode));
+    //   // Save the recently played episode to localStorage
+    //   const recentEpisode = {
+    //       guid: episode.guid,
+    //       title: episode.title,
+    //       audioUrl: episode.audioUrl,
+    //       currentTime: this.audio.currentTime || 0,
+    //   };
+    //   localStorage.setItem("recentlyPlayedEpisode", JSON.stringify(recentEpisode));
 
-      // Update currentTime and duration during playback
-      this.audio.addEventListener("timeupdate", () => {
-          this.currentTime = this.audio.currentTime;
-          this.duration = this.audio.duration;
+    //   // Update currentTime and duration during playback
+    //   this.audio.addEventListener("timeupdate", () => {
+    //       this.currentTime = this.audio.currentTime;
+    //       this.duration = this.audio.duration;
 
-          // Save listening progress
-          this.listenedHistory[episode.guid] = {
-              currentTime: this.audio.currentTime,
-              duration: this.audio.duration,
-          };
-          this.saveListenedHistory();
+    //       // Save listening progress
+    //       this.listenedHistory[episode.guid] = {
+    //           currentTime: this.audio.currentTime,
+    //           duration: this.audio.duration,
+    //       };
+    //       this.saveListenedHistory();
 
-          // Update localStorage with the latest progress
-          recentEpisode.currentTime = this.audio.currentTime;
-          localStorage.setItem("recentlyPlayedEpisode", JSON.stringify(recentEpisode));
-      });
+    //       // Update localStorage with the latest progress
+    //       recentEpisode.currentTime = this.audio.currentTime;
+    //       localStorage.setItem("recentlyPlayedEpisode", JSON.stringify(recentEpisode));
+    //   });
 
-      // Clear the history when the audio ends
-      this.audio.addEventListener("ended", () => {
-          delete this.listenedHistory[episode.guid];
-          this.saveListenedHistory();
-          localStorage.removeItem("recentlyPlayedEpisode");
-      });
+    //   // Clear the history when the audio ends
+    //   this.audio.addEventListener("ended", () => {
+    //       delete this.listenedHistory[episode.guid];
+    //       this.saveListenedHistory();
+    //       localStorage.removeItem("recentlyPlayedEpisode");
+    //   });
 
-      // Listen for play and pause events to update isPaused state
-      this.audio.addEventListener("play", () => {
-          this.isPaused = false;
-      });
+    //   // Listen for play and pause events to update isPaused state
+    //   this.audio.addEventListener("play", () => {
+    //       this.isPaused = false;
+    //   });
 
-      this.audio.addEventListener("pause", () => {
-          this.isPaused = true;
-      });
+    //   this.audio.addEventListener("pause", () => {
+    //       this.isPaused = true;
+    //   });
 
-      // If not starting up the app, play the audio
-      if (!startingUpApp) {
-          this.audio.play();
-          this.isPaused = false;
-      }
+    //   // If not starting up the app, play the audio
+    //   if (!startingUpApp) {
+    //       this.audio.play();
+    //       this.isPaused = false;
+    //   }
+    // },
+    playAudio(episode, startingUpApp = false) {
+        this.currentAudio = {
+            src: episode.audioUrl,
+            title: episode.title,
+            guid: episode.guid,
+        };
+
+        this.$nextTick(() => {
+            const audio = this.$refs.audioPlayer;
+            if (!audio) return;
+
+            // Load saved progress if available
+            const savedData = this.listenedHistory[episode.guid];
+            if (savedData?.currentTime) {
+                console.log('Resuming from:', savedData.currentTime);
+                audio.currentTime = savedData.currentTime;
+            }
+
+            if (!startingUpApp) {
+                audio.play();
+            }
+        });
+    },
+
+    updateProgress() {
+        const audio = this.$refs.audioPlayer;
+        if (!audio || !this.currentAudio.guid) return;
+
+        this.listenedHistory[this.currentAudio.guid] = {
+            currentTime: audio.currentTime,
+            duration: audio.duration,
+        };
+        this.saveListenedHistory();
+
+        // Save progress in localStorage too
+        localStorage.setItem(
+            "recentlyPlayedEpisode",
+            JSON.stringify({
+                guid: this.currentAudio.guid,
+                title: this.currentAudio.title,
+                audioUrl: this.currentAudio.src,
+                currentTime: audio.currentTime,
+            })
+        );
+    },
+
+    handleAudioEnd() {
+        if (this.currentAudio?.guid) {
+            delete this.listenedHistory[this.currentAudio.guid];
+            this.saveListenedHistory();
+            localStorage.removeItem("recentlyPlayedEpisode");
+        }
     },
     deleteAudioPlayer(){
       this.audio.pause();
