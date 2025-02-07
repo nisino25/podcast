@@ -221,8 +221,9 @@
       <!-- Audio Player -->
       <!-- Audio Player (Using Browser's Default Controls) -->
       <div v-if="currentAudio?.src" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-4 pb-12 shadow-md z-50">
-        <div class="text-center">
-          <h3 class="text-sm text-left mb-3">{{ currentAudio.title }}</h3>
+        <div class="text-center flex items-center gap-2 justify-center mb-3">
+          <h3 class="text-sm text-left inline-block">{{ currentAudio.title }}</h3>
+          <button @click="deleteAudioPlayer()"><i class="fa-solid fa-delete-left"></i></button>
         </div>
         
         <audio
