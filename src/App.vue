@@ -223,17 +223,42 @@
       <div v-if="currentAudio?.src" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex flex-col items-center px-4 py-4 pb-12 shadow-md z-50">
         <div class="text-center flex items-center gap-2 justify-center mb-3">
           <h3 class="text-sm text-left inline-block">{{ currentAudio.title }}</h3>
-          <button @click="deleteAudioPlayer()"><i class="fa-solid fa-delete-left"></i></button>
+
+
+          <!-- Close Button -->
+          <button @click="deleteAudioPlayer" class="text-red-500 hover:text-red-700 ml-2">
+            <i class="fa-solid fa-times"></i>
+          </button>
         </div>
+
+        <div class="flex items-center gap-4 justify-center w-full">
+  <!-- Skip -5s -->
+  <button @click="skipAudio(-5)" class="text-gray-400 hover:text-white flex items-center gap-1">
+    <i class="fa-solid fa-backward-step"></i> -5s
+  </button>
+
+  <!-- Audio Controls (50% width) -->
+  <audio
+    ref="audioPlayer"
+    :src="currentAudio.src"
+    controls
+    autoplay
+    @timeupdate="updateProgress"
+    @ended="handleAudioEnd"
+    class="w-1/2"
+  ></audio>
+
+  <!-- Skip +5s -->
+  <button @click="skipAudio(5)" class="text-gray-400 hover:text-white flex items-center gap-1">
+    +5s <i class="fa-solid fa-forward-step"></i>
+  </button>
+</div>
+
+
+
+
+
         
-        <audio
-          ref="audioPlayer"
-          :src="currentAudio.src"
-          controls
-          autoplay
-          @timeupdate="updateProgress"
-          @ended="handleAudioEnd"
-        ></audio>
       </div>
 
 
@@ -461,16 +486,19 @@ export default {
     },
 
     handleAudioEnd() {
-        if (this.currentAudio?.guid) {
-            delete this.listenedHistory[this.currentAudio.guid];
-            this.saveListenedHistory();
-            localStorage.removeItem("recentlyPlayedEpisode");
-        }
+      if (this.currentAudio?.guid) {
+        delete this.listenedHistory[this.currentAudio.guid];
+        this.saveListenedHistory();
+        localStorage.removeItem("recentlyPlayedEpisode");
+      }
     },
-    deleteAudioPlayer(){
-      this.audio.pause();
-      this.isPaused = true;
-      this.currentAudio = null;
+    deleteAudioPlayer() {
+        const audio = this.$refs.audioPlayer;
+        if (audio) {
+            audio.pause(); // Pause the audio before removing it
+        }
+        this.isPaused = true;
+        this.currentAudio = null;
     },
     async viewEpisodes(feedUrl) {
       this.loading = true;
@@ -570,12 +598,12 @@ export default {
       this.listenedHistory[guid].isFavorite = episode.isFavorite;
       this.saveListenedHistory();
     },
-    skipAudio(seconds) {
-      if (this.audio) {
-        const newTime = this.audio.currentTime + seconds;
-        this.audio.currentTime = Math.max(0, Math.min(newTime, this.audio.duration));
-      }
-    },
+    // skipAudio(seconds) {
+    //   if (this.audio) {
+    //     const newTime = this.audio.currentTime + seconds;
+    //     this.audio.currentTime = Math.max(0, Math.min(newTime, this.audio.duration));
+    //   }
+    // },
     saveListenedHistory() {
       localStorage.setItem("listenedHistory", JSON.stringify(this.listenedHistory));
     },
@@ -726,6 +754,15 @@ export default {
     },
     isListened(guid) {
       return !!this.listenedHistory[guid];
+    },
+
+
+    skipAudio(seconds) {
+        const audio = this.$refs.audioPlayer;
+        if (audio) {
+            let newTime = audio.currentTime + seconds;
+            audio.currentTime = Math.max(0, Math.min(newTime, audio.duration));
+        }
     },
   },
   watch: {
