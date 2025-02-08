@@ -245,7 +245,6 @@
     autoplay
     @timeupdate="updateProgress"
     @ended="handleAudioEnd"
-    class="w-1/2"
   ></audio>
 
   <!-- Skip +5s -->
