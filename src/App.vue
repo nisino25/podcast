@@ -679,7 +679,8 @@ export default {
       if (audio.currentTime > 0) {
         this.listenedHistory[guid] = {
           ...this.listenedHistory[guid],
-          currentTime: audio.currentTime,
+          // Save 10 seconds earlier but ensure it's not negative
+          currentTime: Math.max(audio.currentTime - 10, 0),
           duration: audio.duration,
         };
         this.saveListenedHistory();
