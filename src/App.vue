@@ -344,19 +344,24 @@ export default {
     // EpisodeList,
   },
   created() {
-    console.clear()
+    console.clear();
     this.loadListenedHistory();
     this.loadFavorites();
 
     // Check if there's a previously played episode
     const recentEpisode = JSON.parse(localStorage.getItem("recentlyPlayedEpisode"));
     if (recentEpisode) {
-      console.log('found rhe episode');
+        console.log('found the episode');
+
+        // Adjust currentTime to 10 seconds before the saved time
+        recentEpisode.currentTime = Math.max(recentEpisode.currentTime - 10, 0);
+
         this.playAudio(recentEpisode, true); // Set up without playing
-    }else{
-      console.log('couldnt find it ')
+    } else {
+        console.log('couldn’t find it');
     }
-  },
+},
+
   methods: {
     selectItem(id) {
       this.selected = id;
