@@ -352,10 +352,6 @@ export default {
     const recentEpisode = JSON.parse(localStorage.getItem("recentlyPlayedEpisode"));
     if (recentEpisode) {
         console.log('found the episode');
-
-        // Adjust currentTime to 10 seconds before the saved time
-        recentEpisode.currentTime = Math.max(recentEpisode.currentTime - 10, 0);
-
         this.playAudio(recentEpisode, true); // Set up without playing
     } else {
         console.log('couldn’t find it');
@@ -484,7 +480,8 @@ export default {
                 guid: this.currentAudio.guid,
                 title: this.currentAudio.title,
                 audioUrl: this.currentAudio.src,
-                currentTime: audio.currentTime,
+                // Save 10 seconds earlier but ensure it's not negative
+                currentTime: Math.max(audio.currentTime - 10, 0),
             })
         );
     },
